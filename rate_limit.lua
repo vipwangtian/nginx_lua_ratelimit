@@ -4,9 +4,11 @@ local _M = {}
 
 _M._VERSION = "0.1"
 local mt = { __index = _M }
-
+-- redis连接超时时间
 local redis_timeout = 100
+-- redis连接池超时时间
 local redis_pool_timeout = 3600000
+-- redis连接池大小
 local redis_pool_size = 10
 
 --[[ 
@@ -49,6 +51,9 @@ local eval_script = [[
     end
 ]]
 
+--[[
+    构造函数，初始化redis连接，这里db尽量用0，能少执行一个命令是一个
+]]
 function _M.new(self, redis_host, redis_port, db)
     local redis, err = m_redis:new()
     if err then
@@ -67,8 +72,17 @@ function _M.new(self, redis_host, redis_port, db)
     return setmetatable({ _redis = redis }, mt)
 end
 
-function _M.access(self, key, intervalPerPermit, refillTime, burstTokens, limit, interval)
+--[[
+    key:令牌桶在redis中的key
+    permitsPerInterval:每个时间间隔补充令牌的个数
+    burstTokens:瞬时最大通过量
+    limit:令牌桶大小
+    interval:令牌桶的限速间隔，单位是秒
+]]
+function _M.access(self, key, permitsPerInterval, burstTokens, limit, interval)
     local redis = rawget(self, "_redis")
+    local refillTime = os.time()
+    local intervalPerPermit = interval / permitsPerInterval
     local ret, err = redis:eval(eval_script, 1, key, intervalPerPermit, refillTime, burstTokens, limit, interval)
     redis:setkeepalive(redis_pool_timeout, redis_pool_size)
     return ret, err
