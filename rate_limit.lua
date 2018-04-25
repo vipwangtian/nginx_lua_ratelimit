@@ -28,7 +28,7 @@ local eval_script = [[
         if refillTime > lastRefillTime then
             local intervalSinceLast = refillTime - lastRefillTime
             if intervalSinceLast > interval then
-                currentTokens = burstTokens
+                currentTokens = math.max(burstTokens, limit)
                 redis.call('hset', key, 'lastRefillTime', refillTime)
             else
                 local grantedTokens = math.floor(intervalSinceLast / intervalPerPermit)
@@ -74,7 +74,7 @@ end
 
 --[[
     key:令牌桶在redis中的key
-    burstTokens:瞬时最大通过量
+    burstTokens:瞬时最大通过量，瞬时最大通过量应该大于limit/interval，否则没什么意义
     limit:令牌桶大小
     interval:令牌桶的限速间隔，单位是秒
 ]]
