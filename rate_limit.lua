@@ -74,16 +74,15 @@ end
 
 --[[
     key:令牌桶在redis中的key
-    permitsPerInterval:每个时间间隔补充令牌的个数
     burstTokens:瞬时最大通过量
     limit:令牌桶大小
     interval:令牌桶的限速间隔，单位是秒
 ]]
-function _M.access(self, key, permitsPerInterval, burstTokens, limit, interval)
+function _M.access(self, key, burstTokens, limit, interval)
     local redis = rawget(self, "_redis")
     local refillTime = os.time()
-    local intervalPerPermit = interval / permitsPerInterval
-    local ret, err = redis:eval(eval_script, 1, key, intervalPerPermit, refillTime, burstTokens, limit, interval)
+    local intervalPerPermit = interval / limit
+    local ret, err = redis:eval(eval_script, 1, key, refillTime, burstTokens, limit, interval)
     redis:setkeepalive(redis_pool_timeout, redis_pool_size)
     return ret, err
 end
