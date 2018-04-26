@@ -55,6 +55,7 @@ local eval_script = [[
     构造函数，初始化redis连接，这里db尽量用0，能少执行一个命令是一个
 ]]
 function _M.new(self, redis_host, redis_port, db)
+    db = db or 0
     local redis, err = m_redis:new()
     if err then
         return nil, err
@@ -64,9 +65,12 @@ function _M.new(self, redis_host, redis_port, db)
     if err then
         return nil, err
     end
-    ok, err = redis:select(db)
-    if err then
-        return nil, err
+    -- if db number equals 0, need not to execute select command
+    if db > 0 then
+        ok, err = redis:select(db)
+        if err then
+            return nil, err
+        end
     end
 
     return setmetatable({ _redis = redis }, mt)
